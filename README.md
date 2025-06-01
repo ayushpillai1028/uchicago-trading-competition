@@ -1,9 +1,9 @@
-# UChicago Trading Competition (Case 1 Focus)
+# UChicago Trading Competition
 
 ## Competition Overview  
-The UChicago Trading Competition is a national algorithmic trading competition designed by senior members of the UChicago Financial Markets Program. The competition featured 2 challenges: Case 1 (market‑making) and Case 2 (portfolio allocation). On competition day, we focused entirely on Case 1 (market‑making), competing against other teams’ algorithms and the exchange's bots. Case 2 (portfolio allocation) was submitted in advance. Our team was one of 41 selected, and we finished fifth overall and first among all UChicago teams. Below is our Case 1 write‑up, sharing what worked, what didn’t, and ideas for how we could improve next time.
-
 Team Members: Ayush Pillai, Vivan Das, Elliot Gordon, Nick Park
+
+The UChicago Trading Competition is a national algorithmic trading competition designed by senior members of the UChicago Financial Markets Program. The competition featured 2 challenges: Case 1 (market‑making) and Case 2 (portfolio allocation). On competition day, we focused entirely on Case 1 (market‑making), competing against both other teams and the case writer's bots on the exchange. Case 2 (portfolio allocation) was submitted in advance. Our team was one of 41 selected to compete, and we finished fifth overall and first among all UChicago teams. Below is our Case 1 write‑up, sharing what worked, what didn’t, and ideas for how we could improve.
 
 ## Case 1 Overview  
 In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (small‑cap)—and two ETFs: AKAV (basket of APT + DLR + MKJ) and AKIM (daily inverse of AKAV). AKAV can be created/redeemed via a swap (for a \$5 fee), whereas AKIM rebalances internally at end‑of‑day and cannot be created or redeemed.
@@ -28,7 +28,7 @@ In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (
 
 - **Asset Characteristics**  
    - **APT (Large‑Cap Stock):** Releases quarterly earnings. Fair value ≈ P/E ratio × EPS. Earnings news arrives at fixed intervals.  
-   - **DLR (Mid‑Cap Binary Stock):** A petition’s success dictates final value. Use a log‑normal growth model on cumulative signatures to forecast probability of reaching 100,000 by day 10. Settlement for DLR is binary: if petition signatures ≥ 100 000 by day 10, DLR settles at \$100; otherwise it settles at \$0 (bankruptcy). 
+   - **DLR (Mid‑Cap Binary Stock):** A petition’s success dictates final value. Use a log‑normal growth model on cumulative signatures to forecast probability of reaching 100000 by day 10. Settlement for DLR is binary: if petition signatures ≥ 100 000 by day 10, DLR settles at \$100; otherwise it settles at \$0 (bankruptcy). 
    - **MKJ (Small‑Cap Stock):** Receives only unstructured, often low‑quality news.
 
 ---
@@ -38,19 +38,19 @@ In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (
    - **APT:**  
      - On each earnings update (at 30 s, 60 s), calculate `news_price = 10 (constant {P/E}) × EPS`.  
      - Blend with mid‑market midpoint via exponential time decay:
-    ![APT decay formula](assets/apt_val.png)
+    ![APT decay formula](images/apt_val.png)
    - **DLR:**  
      - Maintain cumulative signatures and track “news event” index (up to 50 updates total).  
-     - For each petition update, compute probability of reaching 100 000 by day 10 using log‑normal forecast:  
-    ![DLR Log Normal probability formula](assets/dlr_val.png)
+     - For each petition update, compute probability of reaching 100000 by day 10 using log‑normal forecast:  
+    ![DLR Log Normal probability formula](images/dlr_val.png)
    - **MKJ:**  
-     - Since unstructured news was historically noise, we opted not to trade it. We did not attempt advanced NLP given time constraints.  
+     - Since MKJ's unstructured news was often nonsense (mentions aliens, animals, etc.), we opted not to trade it. We did not attempt advanced NLP given time constraints.  
    - **AKAV:**  
      - Compute `synthetic_fair = fair_APT + fair_DLR + fair_MKJ`.  
      - Add a small position‑based tilt (e.g., +0.05 × DLR position) to account for inventory imbalance.  
-     - If `synthetic_fair > AKAV_market + \$5 + buffer`, execute a “toAKAV” swap; if `AKAV_market > synthetic_fair + \$5 + buffer`, execute a “fromAKAV” swap. 
+     - Look for arbitrage opportunities: if `synthetic_fair > AKAV_market + \$5 + buffer`, execute a “toAKAV” swap; if `AKAV_market > synthetic_fair + \$5 + buffer`, execute a “fromAKAV” swap. 
    - **AKIM:**  
-     - Because AKIM rebalances daily and cannot be created or redeemed, we opted not to trade it; its mid‑market was too unstable for fair modeling.
+     - Because AKIM rebalances daily and cannot be created or redeemed, we opted not to trade it; it's market price was too unstable for fair modeling.
 
 2. **Quote Placement & Spread Management**  
    - For each symbol, maintain a continuous quoting loop:  
@@ -63,8 +63,6 @@ In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (
 3. **Risk & Order Cancellation Logic**  
    - **Outstanding Volume:** If total unfilled volume + 60 shares > 120 (limit), cancel least competitive orders until volume is below threshold.  
    - **Stale Orders:** If our resting bid > new fair bid or resting ask < new fair ask, cancel those orders to avoid crossing stale quotes.  
-   - **Large Spikes:** When a suspiciously large competitor order appears (e.g., > 5× normal lot), temporarily widen spread to mitigate adverse selection.
-
 
 ---
 
