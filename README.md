@@ -6,7 +6,7 @@ Team Members: Ayush Pillai, Vivan Das, Elliot Gordon, Nick Park
 The UChicago Trading Competition is a national algorithmic trading competition designed by senior members of the UChicago Financial Markets Program. The competition featured 2 challenges: Case 1 (market‑making) and Case 2 (portfolio allocation). On competition day, we focused entirely on Case 1 (market‑making), competing against both other teams and the case writer's bots on the exchange. Case 2 (portfolio allocation) was submitted in advance. Our team was one of 41 selected to compete, and we finished fifth overall and first among all UChicago teams. Below is our Case 1 write‑up, sharing what worked, what didn’t, and ideas for how we could improve.
 
 ## Case 1 Overview  
-In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (small‑cap)—and two ETFs: AKAV (basket of APT + DLR + MKJ) and AKIM (daily inverse of AKAV). AKAV can be created/redeemed via a swap (for a \$5 fee), whereas AKIM rebalances internally at end‑of‑day and cannot be created or redeemed.
+In Case 1, teams trade three stocks – APT (large‑cap), DLR (mid‑cap), MKJ (small‑cap) – and two ETFs: AKAV (basket of APT + DLR + MKJ) and AKIM (daily inverse of AKAV). AKAV can be created/redeemed via a swap (for a \$5 fee), whereas AKIM rebalances internally at end‑of‑day and cannot be created or redeemed.
 
 - **Central Limit Order Books** for each tradable asset (stocks and ETFs).  
 - **Risk Enforcement:**  
