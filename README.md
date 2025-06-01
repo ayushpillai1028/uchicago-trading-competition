@@ -21,9 +21,6 @@ In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (
   - **DLR:** Five structured petition updates per day (every 15 seconds) reporting new signatures.  
   - **MKJ:** Multiple unstructured text news events; no guaranteed predictive power.  
 
-- **Scoring & Difficulty Progression:**  
-  - Each round’s P&L is marked to mid or fundamental settlement price and converted to points.  
-  - Later rounds feature faster, tighter buffer bots and more volatile underlying assets.  
 
 ---
 
@@ -44,12 +41,11 @@ In Case 1, teams trade three stocks—APT (large‑cap), DLR (mid‑cap), MKJ (
 
 1. **Fair Value Computation**  
    - **APT:**  
-     - On each earnings update (at 30 s, 60 s), calculate `news_price = 10 × EPS`.  
-     - Blend with mid‑market midpoint via exponential time decay:  
-       \[
-         \text{fair\_APT} = \bigl(1 - w_{\text{news}}(t)\bigr)\cdot \text{mid\_APT} + w_{\text{news}}(t)\cdot \text{news\_price}.
-       \]  
-     - When `w_{\text{news}}` ≤ 0.15, rely solely on mid‑market until next earnings arrives.  
+     - On each earnings update (at 30 s, 60 s), calculate `news_price = 10 (constant {P/E}) × EPS`.  
+     - Blend with mid‑market midpoint via exponential time decay:
+    (apt_val.png)
+
+     - When news fair valule ≤ 0.15, rely solely on mid‑market until next earnings arrives.  
    - **DLR:**  
      - Maintain cumulative signatures and track “news event” index (up to 50 updates total).  
      - For each petition update, compute probability of reaching 100 000 by day 10 using log‑normal forecast:  
