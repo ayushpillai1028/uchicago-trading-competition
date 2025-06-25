@@ -73,3 +73,73 @@ In Case 1, teams trade three stocks – APT (large‑cap), DLR (mid‑cap), MK
 
 2. **Detecting & Reacting to Large Orders**  
    Large market hits often signal high confidence from informed bot traders.  Our current approach simply cancels or widens spreads when a single order size exceeds our threshold. A more sophisticated improvement would be to treat any unusually large fill as a strong signal: immediately shift our fair‑value estimate closer to that trade price and re‑quote around this updated level. In practice, this means defining a “large‑order” threshold (e.g., 2× our typical lot size), then, upon detecting a fill above this threshold, applying a short‑lived price adjustment (for example, a weighted average between our previous fair value and the large fill price) before resuming normal quoting.
+
+
+## Case 2 Overview
+Case 2 tasked teams with allocating a portfolio across six stocks over a ten-year horizon, using ten years of historical intraday price data (30 ticks per day, 1300 days total). The goal was to maximize returns while minimizing return variance, evaluated on the Sharpe ratio over a six-month test period (130 days). Portfolio weights, rebalanced every tick, were constrained to [-1, 1], with performance measured on a test dataset following the training period. The environment was Python 3.10, limited to NumPy, pandas, scikit-learn, and SciPy.
+
+### Key Features
+- **Data**: Intraday prices for six stocks, 30 ticks/day, 5 years for training, 6 months for testing.
+- **Constraints**: Weights in [-1, 1], no fees or liquidity concerns.
+- **Scoring**: Annual Sharpe ratio on portfolio return series (risk-free rate ignored).
+- **Challenges**: Intraday volatility, non-stationary price dynamics, and the need for robust out-of-sample performance.
+
+## Our Approach (Case 2)
+Our strategy blended multiple signals to capture different market dynamics, adaptively weighted based on volatility regimes, with nonlinear amplification and volatility targeting to optimize risk-adjusted returns.
+
+### Signal Generation
+We implemented five normalized signals, each capturing a distinct aspect of asset behavior:
+1. **Sharpe Score**: Rolling mean return divided by volatility (window=4 ticks), normalized to emphasize risk-adjusted performance.
+2. **Momentum**: Average return over the last 3 ticks, normalized by volatility, to capture short-term trends.
+3. **Contrarian**: Negative z-scores of returns (mean-reversion signal), using a rolling window to detect overbought/oversold conditions.
+4. **Up-Down Volatility Asymmetry**: Difference between upside and downside volatility, to exploit asymmetric risk profiles.
+5. **Cross-Sectional Rank**: Ranked latest returns, normalized, to prioritize relative performance.
+
+### Signal Blending
+Signals were combined using adaptive weights based on the volatility regime:
+- **Low Volatility**: Weights [0.4, 0.3, 0.1, 0.1, 0.1] favored Sharpe and momentum for stability.
+- **High Volatility**: Weights [0.3, 0.4, 0.1, 0.1, 0.1] emphasized momentum to exploit trends.
+Regime was determined by comparing the current window’s volatility to the historical average.
+
+### Nonlinear Amplification
+To enhance extreme signals, we applied an adaptive exponent:
+- **Default**: 1.5 for aggressive allocation in stable markets.
+- **High Volatility**: 1.2 to soften amplification and reduce risk.
+The blended signal was transformed as `sign(signal) * |signal|^exponent`, then normalized to sum to 1.
+
+### Volatility Targeting
+To manage risk, we scaled weights to target a daily portfolio volatility of 1.5%, using the covariance matrix of returns. A cap on the scaler (1.5) prevented over-leveraging, ensuring weights remained within [-1, 1].
+
+### Implementation
+- **Class**: `Allocator` maintained running price paths and computed weights per tick.
+- **Fallback**: Equal weights (1/6) for the first 10 ticks to ensure stability during initialization.
+- **Epsilon**: Small constant (1e-8) to avoid division-by-zero errors.
+- **Evaluation**: The `grading` function simulated portfolio performance, computing capital growth and Sharpe ratio.
+
+## Strengths
+- **Multi-Signal Approach**: Combining momentum, contrarian, and risk-based signals captured diverse market dynamics, reducing reliance on any single predictor.
+- **Adaptive Weighting**: Volatility-based regime switching balanced stability and opportunism.
+- **Risk Management**: Volatility targeting and weight normalization ensured consistent risk exposure.
+- **Robustness**: Signals were normalized to handle varying scales, and the epsilon term prevented numerical instability.
+
+## Weaknesses
+- **Short Window Sensitivity**: The 4-tick window for signals was sensitive to noise, potentially missing longer-term trends.
+- **Static Signal Weights**: While adaptive, the predefined weights (e.g., 0.4, 0.3) were not optimized and could be misaligned for specific market conditions.
+- **Volatility Targeting Lag**: Using historical covariance may lag sudden market shifts, impacting risk control.
+- **Limited Testing**: Time constraints limited out-of-sample validation, risking overfitting to the training data.
+
+## Future Improvements
+### Dynamic Window Adjustment
+The fixed 4-tick window was a compromise for intraday responsiveness. A dynamic window, adjusted based on market volatility or asset-specific characteristics, could better balance noise and trend detection. For example, extending the window in low-volatility periods could capture more stable trends, while shortening it in high-volatility periods could improve responsiveness.
+
+### Optimized Signal Weights
+Instead of static weights, we could use a rolling optimization to determine signal contributions, maximizing historical Sharpe ratio on a held-out validation set. This would require careful regularization to avoid overfitting but could better adapt to changing market regimes.
+
+### Enhanced Volatility Modeling
+Incorporating real-time volatility estimates (e.g., GARCH models) could improve the accuracy of our covariance matrix, reducing lag in volatility targeting. This would be particularly effective for intraday price swings, a key challenge in Case 2.
+
+### Cross-Validation Framework
+To mitigate overfitting, we could implement k-fold cross-validation on the training data, splitting it into multiple train-test subsets. This would provide a more robust estimate of out-of-sample performance and guide hyperparameter tuning (e.g., window size, amplification exponent).
+
+## Conclusion
+Our Case 2 strategy leveraged a multi-signal framework with adaptive weighting and risk management to address the challenges of intraday portfolio optimization. While effective, it could be enhanced with dynamic windows, optimized weights, and better volatility modeling. These improvements would require rigorous out-of-sample testing to ensure generalizability, aligning with the competition’s emphasis on robust, practical solutions over complex methods.
